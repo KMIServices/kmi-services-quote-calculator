@@ -1,0 +1,78 @@
+{
+    "hourly_rate": 20.0,
+    "markup_percentage": 15,
+    "property_hours": {
+        "Regular Clean": {
+            "1 Bedroom": 2.5,
+            "2 Bedroom": 3.0,
+            "3 Bedroom": 4.0,
+            "4 Bedroom": 5.0,
+            "5+ Bedroom": 6.0
+        },
+        "One-Off Clean": {
+            "1 Bedroom": 3.0,
+            "2 Bedroom": 3.5,
+            "3 Bedroom": 4.5,
+            "4 Bedroom": 5.5,
+            "5+ Bedroom": 6.5
+        },
+        "Deep Clean": {
+            "1 Bedroom": 3.5,
+            "2 Bedroom": 4.0,
+            "3 Bedroom": 5.0,
+            "4 Bedroom": 6.0,
+            "5+ Bedroom": 7.0
+        }
+    },
+    "cleaners_required": {
+        "Regular Clean": {
+            "1 Bedroom": 1,
+            "2 Bedroom": 1,
+            "3 Bedroom": 1,
+            "4 Bedroom": 2,
+            "5+ Bedroom": 2
+        },
+        "One-Off Clean": {
+            "1 Bedroom": 1,
+            "2 Bedroom": 1,
+            "3 Bedroom": 2,
+            "4 Bedroom": 2,
+            "5+ Bedroom": 3
+        },
+        "Deep Clean": {
+            "1 Bedroom": 2,
+            "2 Bedroom": 2,
+            "3 Bedroom": 2,
+            "4 Bedroom": 3,
+            "5+ Bedroom": 3
+        }
+    },
+    "region_multiplier": {
+        "Bedfordshire": 1.0,
+        "Buckinghamshire": 1.1,
+        "Hertfordshire": 1.15,
+        "North London": 1.25
+    },
+    "extra_costs": {
+        "extra_bathroom": 15.0,
+        "extra_reception_room": 10.0,
+        "oven_clean": 30.0,
+        "carpet_cleaning_per_room": 25.0,
+        "internal_windows": 20.0,
+        "external_windows": 30.0,
+        "balcony_patio": 20.0,
+        "cleaning_materials": 15.0
+    },
+    "cleanliness_multiplier": {
+        "Very Clean": 0.9,
+        "Normal": 1.0,
+        "Somewhat Dirty": 1.2,
+        "Very Dirty": 1.5
+    },
+    "pet_multiplier": {
+        "No Pets": 1.0,
+        "Small Pet (e.g., cat, small dog)": 1.1,
+        "Large Pet (e.g., large dog)": 1.2,
+        "Multiple Pets": 1.3
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "company_name": "KMI Services",
+    "company_email": "info@kmiservices.co.uk",
+    "company_website": "www.kmiservices.co.uk",
+    "email_settings": {
+        "smtp_server": "smtp.example.com",
+        "smtp_port": 587,
+        "smtp_username": "",
+        "smtp_password": "",
+        "from_email": "info@kmiservices.co.uk"
+    }
+}
