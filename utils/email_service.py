@@ -829,46 +829,39 @@ headers = {
     'Content-Type': 'application/json',
     'Origin': 'https://kmiservices.co.uk'  # Add origin header to bypass browser check
 }
-# Handle potential JSON serialization errors
-payload_json = None
-try:
-    payload_json = json.dumps(payload)
-except TypeError as e:
-    if "indices must be integers or slices" in str(e):
-        print(f"ERROR: List indices error detected in EmailJS payload: {str(e)}")
-        # Clone the template params to fix any potential issues
-        fixed_template_params = {}
-        for key, value in template_params.items():
-            if isinstance(value, dict) or isinstance(value, list):
-                fixed_template_params[key] = str(value)
-            else:
-                fixed_template_params[key] = value
-        
-        # Create new payload with fixed parameters
-        payload['template_params'] = fixed_template_params
-        payload_json = json.dumps(payload)
-    else:
-        raise
 
-# Now make the request with the processed payload
-response = requests.post(
-    'https://api.emailjs.com/api/v1.0/email/send',
-    data=payload_json,
-    headers=headers
-)
-            print(f"EmailJS response: {response.text}")  # Debug response
-            
-            # Check if the email was sent successfully
-            if response.status_code == 200:
-                print(f"Email sent to {recipient_email} successfully via EmailJS!")
-                return True
-            else:
-                print(f"Failed to send email via EmailJS to {recipient_email}: {response.text}")
-                return False
-                
-        except Exception as e:
-            print(f"Error sending email via EmailJS: {str(e)}")
-            return False
+# Simple approach without complex error handling
+try:
+    # Convert any complex types in template_params to strings
+    safe_template_params = {}
+    for key, value in template_params.items():
+        if isinstance(value, (dict, list)):
+            safe_template_params[key] = str(value)
+        else:
+            safe_template_params[key] = value
+    
+    # Replace original params with safe ones
+    payload['template_params'] = safe_template_params
+    
+    # Make the request
+    response = requests.post(
+        'https://api.emailjs.com/api/v1.0/email/send',
+        data=json.dumps(payload),
+        headers=headers
+    )
+    
+    print(f"EmailJS response: {response.text}")  # Debug response
+    
+    # Check if the email was sent successfully
+    if response.status_code == 200:
+        print(f"Email sent to {recipient_email} successfully via EmailJS!")
+        return True
+    else:
+        print(f"Failed to send email via EmailJS to {recipient_email}: {response.text}")
+        return False
+except Exception as e:
+    print(f"Error sending email via EmailJS: {str(e)}")
+    return False
             
     print("ERROR: No email sending method is properly configured.")
     return False
