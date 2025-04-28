@@ -829,12 +829,14 @@ headers = {
     'Content-Type': 'application/json',
     'Origin': 'https://kmiservices.co.uk'  # Add origin header to bypass browser check
 }
-# Convert payload to JSON and handle potential string/list index errors
+# Handle potential JSON serialization errors
+payload_json = None
 try:
     payload_json = json.dumps(payload)
 except TypeError as e:
     if "indices must be integers or slices" in str(e):
-        # Fix code...
+        print(f"ERROR: List indices error detected in EmailJS payload: {str(e)}")
+        # Clone the template params to fix any potential issues
         fixed_template_params = {}
         for key, value in template_params.items():
             if isinstance(value, dict) or isinstance(value, list):
@@ -847,13 +849,13 @@ except TypeError as e:
         payload_json = json.dumps(payload)
     else:
         raise
-# This line needs to be properly indented
+
+# Now make the request with the processed payload
 response = requests.post(
     'https://api.emailjs.com/api/v1.0/email/send',
     data=payload_json,
     headers=headers
 )
-            
             print(f"EmailJS response: {response.text}")  # Debug response
             
             # Check if the email was sent successfully
