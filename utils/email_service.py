@@ -824,16 +824,36 @@ def send_email(to_email, subject, html_content, email_type="customer_quote", dir
                 'template_params': template_params
             }
             
-            # Make the API request to EmailJS
-            headers = {
-                'Content-Type': 'application/json',
-                'Origin': 'https://kmiservices.co.uk'  # Add origin header to bypass browser check
-            }
-            response = requests.post(
-                'https://api.emailjs.com/api/v1.0/email/send',
-                data=json.dumps(payload),
-                headers=headers
-            )
+# Make the API request to EmailJS
+headers = {
+    'Content-Type': 'application/json',
+    'Origin': 'https://kmiservices.co.uk'  # Add origin header to bypass browser check
+}
+# Convert payload to JSON and handle potential string/list index errors
+try:
+    payload_json = json.dumps(payload)
+except TypeError as e:
+    if "indices must be integers or slices" in str(e):
+        print(f"ERROR: List indices error detected in EmailJS payload: {str(e)}")
+        # Clone the template params to fix any potential issues
+        fixed_template_params = {}
+        for key, value in template_params.items():
+            if isinstance(value, dict) or isinstance(value, list):
+                fixed_template_params[key] = str(value)
+            else:
+                fixed_template_params[key] = value
+        
+        # Create new payload with fixed parameters
+        payload['template_params'] = fixed_template_params
+        payload_json = json.dumps(payload)
+    else:
+        raise
+    
+response = requests.post(
+    'https://api.emailjs.com/api/v1.0/email/send',
+    data=payload_json,
+    headers=headers
+)
             
             print(f"EmailJS response: {response.text}")  # Debug response
             
