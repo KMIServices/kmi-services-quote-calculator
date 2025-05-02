@@ -8,6 +8,7 @@ from utils.email_service import send_customer_email, send_business_email
 from utils.data_storage import save_quote_to_csv
 from utils.database import save_quote_to_db, initialize_db
 
+
 # Initialize session state variables
 if "show_service_details" not in st.session_state:
     st.session_state.show_service_details = False
