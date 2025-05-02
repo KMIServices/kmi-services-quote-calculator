@@ -817,12 +817,11 @@ def send_email(to_email, subject, html_content, email_type="customer_quote", dir
                 'template_params': template_params
             }
             
-            # Make the API request to EmailJS
-            headers = {
+            # Make the API request to EmailJS headers = {
                 'Content-Type': 'application/json',
                 'Origin': 'https://kmiservices.co.uk'  # Add origin header to bypass browser check
             }
-            
+
             # A simplified approach to handle complex data types
             # First convert any complex types to strings
             safe_template_params = {}
@@ -831,17 +830,17 @@ def send_email(to_email, subject, html_content, email_type="customer_quote", dir
                     safe_template_params[key] = str(value)
                 else:
                     safe_template_params[key] = value
-            
+
             # Replace original params with safe ones
             payload['template_params'] = safe_template_params
-            
+
             # Convert payload to JSON with safer error handling
             try:
                 payload_json = json.dumps(payload)
             except Exception as e:
                 print(f"JSON encoding error: {str(e)}")
                 return False
-                
+    
             # Make the API request
             response = requests.post(
                 'https://api.emailjs.com/api/v1.0/email/send',
