@@ -321,66 +321,33 @@ def create_business_email_content(quote_data, is_scheduled=False):
             <p><strong>Reception Rooms:</strong> """ + str(num_reception_rooms) + """</p>
             <p><strong>Service Type:</strong> """ + service_type + """</p>
             <p><strong>Cleaning Date:</strong> """ + cleaning_date + """</p>
+            <p><strong>Cleanliness Level:</strong> """ + quote_data["service_info"].get("cleanliness_level", "Normal") + """</p>
+            <p><strong>Pet Status:</strong> """ + quote_data["service_info"].get("pet_status", "No Pets") + """</p>
+            <p><strong>Cleaner Preference:</strong> """ + quote_data["service_info"].get("cleaner_preference", "No Preference") + """</p>
     """
+    
+    # Add cleaning materials if included
+    if quote_data["service_info"]["cleaning_materials"]:
+        html_content += "<p><strong>Cleaning Materials:</strong> Included</p>"
+    
+    # Add customer notes if provided
+    if quote_data["service_info"].get("customer_notes"):
+        html_content += "<p><strong>Customer Notes:</strong> " + quote_data["service_info"]["customer_notes"] + """</p>"""
     
     # Add time preference if scheduled
     if is_scheduled and quote_data["service_info"].get("time_preference"):
         html_content += "<p><strong>Preferred Time:</strong> " + quote_data["service_info"].get("time_preference", "Not specified") + "</p>"
     
-    # Add cleanliness level and pet status
-    html_content += "<p><strong>Cleanliness Level:</strong> " + quote_data["service_info"].get("cleanliness_level", "Normal") + "</p>"
-    html_content += "<p><strong>Pets in Home:</strong> " + quote_data["service_info"].get("pet_status", "No Pets") + "</p>"
-    
-    # Add cleaner preference if one was selected
-    cleaner_preference = quote_data["service_info"].get("cleaner_preference", "No Preference")
-    if cleaner_preference != "No Preference":
-        html_content += "<p><strong>Cleaner Preference:</strong> " + cleaner_preference + "</p>"
-        html_content += "<p><em>Note: Customer selected a cleaner preference. This affects job duration but not the total price.</em></p>"
-    
-    # Add customer notes if any
-    if quote_data["service_info"].get("customer_notes"):
-        html_content += "<p><strong>Customer Notes:</strong> " + quote_data["service_info"]["customer_notes"] + "</p>"
-    
-    # Add additional services if any
-    additional_services = quote_data["service_info"]["additional_services"]
-    if any(additional_services.values()) or quote_data["service_info"]["cleaning_materials"]:
-        html_content += "<h3>Additional Services:</h3><ul>"
-        
-        if additional_services["oven_clean"]:
-            html_content += "<li>Oven Clean</li>"
-            
-        if additional_services["carpet_cleaning"]:
-            carpet_rooms = additional_services["carpet_rooms"]
-            if carpet_rooms > 1:
-                html_content += "<li>Carpet Cleaning (" + str(carpet_rooms) + " rooms)</li>"
-            else:
-                html_content += "<li>Carpet Cleaning (1 room)</li>"
-            
-        if additional_services["internal_windows"]:
-            html_content += "<li>Internal Windows</li>"
-            
-        if additional_services["external_windows"]:
-            html_content += "<li>External Windows</li>"
-            
-        if additional_services["balcony_patio"]:
-            html_content += "<li>Sweep Balcony/Patio</li>"
-        
-        if quote_data["service_info"]["cleaning_materials"]:
-            html_content += "<li>Cleaning Materials Included</li>"
-            
-        html_content += "</ul>"
-    
-    # Close the property and service section
     html_content += "</div>"
     
-    # Business calculations section
+    # Pricing & Resources section
     html_content += """
         <div class="section">
-            <h2>Business Calculations</h2>
+            <h2>Pricing & Resources</h2>
             <p><strong>Hourly Rate:</strong> &pound;""" + "{:.2f}".format(float(hourly_rate)) + """</p>
-            <p><strong>Hours Required:</strong> """ + "{:.2f}".format(float(hours_required)) + """ hours</p>
+            <p><strong>Hours Required:</strong> """ + "{:.2f}".format(float(hours_required)) + """</p>
             <p><strong>Cleaners Required:</strong> """ + str(cleaners_required) + """</p>
-            <p><strong>Region Multiplier:</strong> """ + "{:.2f}".format(float(region_multiplier)) + """</p>
+            <p><strong>Region Multiplier:</strong> """ + str(region_multiplier) + """</p>
             
             <h3>Price Breakdown</h3>
             <table class="price-breakdown">
@@ -389,28 +356,31 @@ def create_business_email_content(quote_data, is_scheduled=False):
                     <th>Cost</th>
                 </tr>
                 <tr>
-                    <td>Base Price</td>
+                    <td>Base Price (""" + property_size + """ property)</td>
                     <td>&pound;""" + "{:.2f}".format(float(base_price)) + """</td>
                 </tr>
     """
     
-    # Add extra bathroom costs if any
+    # Add extra bathroom costs if applicable
     if extra_bathrooms_cost > 0:
         html_content += """
                 <tr>
-                    <td>Extra Bathrooms</td>
+                    <td>Extra Bathrooms (""" + str(num_bathrooms - 1) + """)</td>
                     <td>&pound;""" + "{:.2f}".format(float(extra_bathrooms_cost)) + """</td>
                 </tr>
         """
     
-    # Add extra reception costs if any
+    # Add extra reception costs if applicable
     if extra_reception_cost > 0:
         html_content += """
                 <tr>
-                    <td>Extra Reception Rooms</td>
+                    <td>Extra Reception Rooms (""" + str(num_reception_rooms - 1) + """)</td>
                     <td>&pound;""" + "{:.2f}".format(float(extra_reception_cost)) + """</td>
                 </tr>
         """
+    
+    # Add additional services costs
+    additional_services = quote_data["service_info"]["additional_services"]
     
     # Add oven cleaning cost if selected
     if additional_services["oven_clean"]:
@@ -424,13 +394,16 @@ def create_business_email_content(quote_data, is_scheduled=False):
     
     # Add carpet cleaning cost if selected
     if additional_services["carpet_cleaning"]:
-        carpet_cost = price_details["extra_costs"]["carpet_cleaning_per_room"] * additional_services["carpet_rooms"]
-        html_content += """
-                <tr>
-                    <td>Carpet Cleaning (""" + str(additional_services["carpet_rooms"]) + """ rooms)</td>
-                    <td>&pound;""" + "{:.2f}".format(float(carpet_cost)) + """</td>
-                </tr>
-        """
+        carpet_rooms = additional_services["carpet_rooms"]
+        if carpet_rooms > 0:
+            carpet_cost = price_details["extra_costs"]["carpet_cleaning"] * carpet_rooms
+            carpet_desc = f"Carpet Cleaning ({carpet_rooms} room{'s' if carpet_rooms > 1 else ''})"
+            html_content += """
+                    <tr>
+                        <td>""" + carpet_desc + """</td>
+                        <td>&pound;""" + "{:.2f}".format(float(carpet_cost)) + """</td>
+                    </tr>
+            """
     
     # Add internal windows cost if selected
     if additional_services["internal_windows"]:
@@ -498,67 +471,86 @@ def create_business_email_content(quote_data, is_scheduled=False):
             <h2 style="color: #e74c3c;">Admin Adjustments</h2>
         """
         
-        # Admin notes if any
+        # Show admin notes if available
         if "admin_notes" in price_details and price_details["admin_notes"]:
-            html_content += "<p><strong>Admin Notes:</strong> " + price_details['admin_notes'] + "</p>"
+            html_content += "<p><strong>Admin Notes:</strong> " + price_details["admin_notes"] + "</p>"
         
-        # Regular client discount if applied
+        # Show regular client discount if applied
         if "regular_client_discount_percentage" in price_details and price_details["regular_client_discount_percentage"]:
+            discount_percentage = price_details["regular_client_discount_percentage"]
+            discount_amount = price_details.get("regular_client_discount_amount", 0)
+            original_price = price_details.get("original_price", 0)
+            
             html_content += """
-            <div class="adjustment-item">
-                <h3>Regular Client Discount</h3>
-                <p><strong>Discount Percentage:</strong> """ + str(price_details['regular_client_discount_percentage']) + """%</p>
-                <p><strong>Discount Amount:</strong> &pound;""" + "{:.2f}".format(float(price_details['regular_client_discount_amount'])) + """</p>
-                <p><strong>Original Price:</strong> &pound;""" + "{:.2f}".format(float(price_details['original_price'])) + """</p>
-                <p><strong>Discounted Price:</strong> &pound;""" + "{:.2f}".format(float(price_details['total_price'])) + """</p>
-            </div>
+            <p><strong>Regular Client Discount:</strong> """ + str(discount_percentage) + """% (&pound;""" + "{:.2f}".format(float(discount_amount)) + """)</p>
+            <p><strong>Original Price:</strong> &pound;""" + "{:.2f}".format(float(original_price)) + """</p>
             """
         
-        # Cleaner adjustment if applied
+        # Show cleaner adjustment if made
         if "original_cleaners" in price_details and price_details["original_cleaners"]:
+            original_cleaners = price_details["original_cleaners"]
             html_content += """
-            <div class="adjustment-item">
-                <h3>Cleaner Adjustment</h3>
-                <p><strong>Original Cleaners:</strong> """ + str(price_details['original_cleaners']) + """</p>
-                <p><strong>Adjusted Cleaners:</strong> """ + str(price_details['cleaners_required']) + """</p>
-                <p><strong>Original Hours:</strong> """ + "{:.2f}".format(float(price_details['original_hours'])) + """</p>
-                <p><strong>Adjusted Hours:</strong> """ + "{:.2f}".format(float(price_details['hours_required'])) + """</p>
-            </div>
+            <p><strong>Original Cleaners:</strong> """ + str(original_cleaners) + """</p>
             """
         
-        # Markup adjustment if applied
+        # Show hours adjustment if made
+        if "original_hours" in price_details and price_details["original_hours"]:
+            original_hours = price_details["original_hours"]
+            html_content += """
+            <p><strong>Original Hours:</strong> """ + "{:.2f}".format(float(original_hours)) + """</p>
+            """
+        
+        # Show markup adjustment if made
         if "original_markup_percentage" in price_details and price_details["original_markup_percentage"]:
+            original_markup = price_details.get("original_markup", 0)
+            original_markup_percentage = price_details["original_markup_percentage"]
             html_content += """
-            <div class="adjustment-item">
-                <h3>Markup Adjustment</h3>
-                <p><strong>Original Markup:</strong> """ + str(price_details['original_markup_percentage']) + """% (&pound;""" + "{:.2f}".format(float(price_details['original_markup'])) + """)</p>
-                <p><strong>Adjusted Markup:</strong> """ + str(price_details['markup_percentage']) + """% (&pound;""" + "{:.2f}".format(float(price_details['markup'])) + """)</p>
-            </div>
+            <p><strong>Original Markup:</strong> """ + str(original_markup_percentage) + """% (&pound;""" + "{:.2f}".format(float(original_markup)) + """)</p>
             """
-        
+            
         html_content += "</div>"
     
-    # Add scheduling information
+    # Add scheduled message if applicable
     if is_scheduled:
-        html_content += "<p>" + scheduled_msg + "</p>"
-    else:
-        html_content += "<p>This is a quote only. Customer will need to confirm booking.</p>"
+        html_content += """
+        <div class="section scheduled-section" style="background-color: #d4edda; color: #155724;">
+            <h2>Scheduled Cleaning Information</h2>
+            <p><strong>Cleaning Date:</strong> """ + cleaning_date + """</p>
+        """
+        
+        if quote_data["service_info"].get("time_preference"):
+            html_content += "<p><strong>Preferred Time:</strong> " + quote_data["service_info"].get("time_preference") + "</p>"
+            
+        html_content += """
+            <p>This cleaning has been scheduled and confirmed with the customer.</p>
+        </div>
+        """
     
-    # Add morning-only note for long cleanings
-    if is_scheduled and hours_required > 3:
-        # Format hours with 2 decimal places
-        formatted_hours = "{:.2f}".format(float(hours_required))
-        html_content += "<p><strong>Note:</strong> Due to the estimated cleaning time of " + formatted_hours + " hours, this cleaning can only be performed in the morning.</p>"
+    # Changed behavior for regular and admin quote modes
+    if is_scheduled:
+        html_content += """
+        <p>Please ensure all cleaning resources are prepared for this scheduled service.</p>
+        """
+    else:
+        html_content += """
+        <p>This quote requires admin review and is not yet visible to the customer. Once you've reviewed the details, you can send this quote to the customer by clicking the "Send Quote" button in the Admin Panel.</p>
+        """
     
     # Add footer
     html_content += """
             <div class="footer">
-                <p>Internal Business Email - """ + company_name + """</p>
+                <p>""" + company_name + """ Internal Use Only</p>
             </div>
         </div>
     </body>
     </html>
     """
+    
+    # Add a hidden marker with the quote ID to enable easier tracking
+    body_pos = html_content.find("<body>")
+    if body_pos > 0:
+        marker_div = f"<div id='quote-id-marker' style='display:none;'><p><strong>Quote ID:</strong> {quote_id}</p></div>"
+        html_content = html_content[:body_pos+6] + marker_div + html_content[body_pos+6:]
     
     return subject, html_content
 
@@ -898,116 +890,76 @@ def send_customer_email(quote_data, is_scheduled=False, is_admin_sending=False):
         # Add terms and conditions section before closing tags
         tc_section = """
         <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 5px;">
-            <p><strong>Terms and Conditions</strong></p>
-            <p>By accepting this quote, you agree to our <a href="https://kmiservices.co.uk/terms">Terms and Conditions</a>.</p>
-            <p>Please review them before requesting a cleaning date.</p>
+            <h3>Terms & Conditions</h3>
+            <p>By scheduling a cleaning service with us, you are agreeing to our terms and conditions. Please review our <a href="https://kmiservices.co.uk/terms-and-conditions" style="color: #22C7D6; text-decoration: underline;">Terms & Conditions</a> for full details about our service policies.</p>
         </div>
         """
-        
-        # Insert the T&C section before the closing container div
-        html_content = html_content.replace('</div>\n    </body>', f'{tc_section}\n        </div>\n    </body>')
+        # Find the closing container div to insert before
+        container_close = '</div>\n    </body>'
+        if container_close in html_content:
+            insert_pos = html_content.find(container_close)
+            html_content = html_content[:insert_pos] + tc_section + html_content[insert_pos:]
     
-    # Try to use SMTP directly first if available (more reliable for controlling recipient)
-    import os
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-    
-    if os.environ.get('EMAIL_USER') and os.environ.get('EMAIL_PASSWORD'):
-        try:
-            print(f"Trying to send direct customer email via SMTP to {customer_email}...")
-            # Get SMTP configuration from environment variables
-            smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
-            smtp_port = int(os.environ.get('SMTP_PORT', 587))
-            email_user = os.environ.get('EMAIL_USER')
-            email_password = os.environ.get('EMAIL_PASSWORD')
-            
-            # Create message
-            message = MIMEMultipart('alternative')
-            message['Subject'] = subject
-            message['From'] = email_user
-            message['To'] = customer_email
-            
-            # Attach HTML content
-            html_part = MIMEText(html_content, 'html')
-            message.attach(html_part)
-            
-            # Connect to server and send
-            server = smtplib.SMTP(smtp_server, smtp_port)
-            server.starttls()
-            # Make sure we have string values for login
-            if email_user and email_password:
-                server.login(str(email_user), str(email_password))
-                server.sendmail(str(email_user), customer_email, message.as_string())
-            server.quit()
-            
-            print(f"Customer email sent directly to {customer_email} via SMTP successfully!")
-            
-            # Mark as sent to customer in the database
-            if "quote_id" in quote_data:
-                update_sent_to_customer(quote_data["quote_id"], True)
-                
-            return True
-        except Exception as e:
-            print(f"Error sending direct customer email via SMTP: {str(e)}")
-            # Fall back to regular send_email
-    
-    # Get the customer phone if available
+    # Get the customer phone number
     customer_phone = quote_data["customer_info"].get("phone", "Not provided")
     
-    # Fall back to regular EmailJS method
     success = send_email(customer_email, subject, html_content, email_type=email_type, direct_phone=customer_phone)
     
-    # Mark as sent to customer in the database
-    if success and "quote_id" in quote_data:
-        update_sent_to_customer(quote_data["quote_id"], True)
-        
+    # If the email was sent by admin, mark it as sent to customer in the database
+    if success and is_admin_sending:
+        quote_id = quote_data.get("quote_id")
+        if quote_id:
+            try:
+                update_sent_to_customer(quote_id, sent=True)
+                print(f"Updated database: Quote {quote_id} marked as sent to customer")
+            except Exception as e:
+                print(f"Failed to update database for quote {quote_id}: {str(e)}")
+    
     return success
 
 def send_business_email(quote_data, is_scheduled=False, is_admin_sending=False):
     """Send detailed quote email to business"""
     config = load_config()
-    business_email = config["company_email"]
+    business_email = config.get("company_email", "info@kmiservices.co.uk")
     
-    # Make sure we have the price correctly formatted for the business email
-    if "price_details" in quote_data and "total_price" in quote_data["price_details"]:
-        # Format the total price to 2 decimal places to avoid floating point issues
-        raw_price = quote_data["price_details"]["total_price"]
-        formatted_price = "{:.2f}".format(float(raw_price))
-        quote_data["price_details"]["total_price"] = float(formatted_price)
-        print(f"BUSINESS EMAIL: Fixed price formatting - Raw: {raw_price}, Formatted: {formatted_price}")
-    
-    subject, html_content = create_business_email_content(quote_data, is_scheduled)
-    
-    # Determine the email type based on context
+    # Determine the email type based on context:
+    # - admin_schedule: When it's a scheduling confirmation
+    # - admin_quote: Initial quote request
+    # - admin_full_quote: When admin sends the full quote to the customer
     if is_scheduled:
         email_type = "admin_schedule"
     elif is_admin_sending:
-        email_type = "admin_full_quote"  # New type for when admin sends full quote to customer
-        # Update subject to reflect this is a sent quote, not just a new quote
-        subject = subject.replace("New Quote", "Sent Quote")
+        email_type = "admin_full_quote"  # New email type for the full quote that admin sent
     else:
         email_type = "admin_quote"
     
-    # Print debug information for business email
-    quote_id = quote_data.get("quote_id", "N/A")
-    print(f"DEBUG: Sending business email for quote_id: {quote_id}")
+    # If this is an admin-sent quote, change the subject and include sent to customer notification
+    subject, html_content = create_business_email_content(quote_data, is_scheduled)
     
-    # Add quote ID to subject if not already included
-    if "(ID:" not in subject and quote_id != "N/A":
-        subject += f" (ID: {quote_id})"
+    # If this is the full sent quote, modify the subject line
+    if is_admin_sending:
+        # Change the subject line to indicate this is a sent quote
+        subject = subject.replace("[BUSINESS] New Quote", "[BUSINESS] Sent Quote")
         
-    # Make sure we're explicitly sending to the business email address
-    print(f"Sending business email to: {business_email}")
+        # Add a notification that this has been sent to the customer
+        sent_notification = f"""
+        <div class="section" style="background-color: #d1ecf1; color: #0c5460; margin-top: 20px;">
+            <h2>Quote Sent to Customer</h2>
+            <p>This quote has been sent to the customer ({quote_data["customer_info"]["email"]}) by an administrator.</p>
+        </div>
+        """
+        
+        # Insert this notification before the closing container div
+        container_close = '</div>\n    </body>'
+        if container_close in html_content:
+            insert_pos = html_content.find(container_close)
+            html_content = html_content[:insert_pos] + sent_notification + html_content[insert_pos:]
     
-    # Modify HTML content to ensure quote ID is included
-    # Add a hidden div with the quote ID that our regex can find
-    if quote_id != "N/A" and "<div id='quote-id-marker'" not in html_content:
-        # Insert after the opening body tag
-        body_pos = html_content.find("<body>")
-        if body_pos > 0:
-            marker_div = f"<div id='quote-id-marker' style='display:none;'><p><strong>Quote ID:</strong> {quote_id}</p></div>"
-            html_content = html_content[:body_pos+6] + marker_div + html_content[body_pos+6:]
+    # Add a hidden marker with the quote ID to enable easier tracking
+    body_pos = html_content.find("<body>")
+    if body_pos > 0:
+        marker_div = f"<div id='quote-id-marker' style='display:none;'><p><strong>Quote ID:</strong> {quote_data.get('quote_id', 'N/A')}</p></div>"
+        html_content = html_content[:body_pos+6] + marker_div + html_content[body_pos+6:]
     
     # Try to use SMTP directly first if available (more reliable for controlling recipient)
     import os
@@ -1054,3 +1006,4 @@ def send_business_email(quote_data, is_scheduled=False, is_admin_sending=False):
     
     # Fall back to regular EmailJS method
     return send_email(business_email, subject, html_content, email_type=email_type, direct_phone=customer_phone)
+```
