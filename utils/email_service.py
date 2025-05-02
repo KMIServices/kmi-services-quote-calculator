@@ -1005,4 +1005,3 @@ def send_business_email(quote_data, is_scheduled=False, is_admin_sending=False):
     
     # Fall back to regular EmailJS method
     return send_email(business_email, subject, html_content, email_type=email_type, direct_phone=customer_phone)
-```
