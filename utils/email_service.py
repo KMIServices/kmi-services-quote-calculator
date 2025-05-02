@@ -816,6 +816,7 @@ def send_email(to_email, subject, html_content, email_type="customer_quote", dir
             print(f"DEBUG: Template ID being used: {emailjs_template_id}")
             print(f"DEBUG: Email type: {email_type}")
             
+            # Fix potential issue with template_params structure
             payload = {
                 'service_id': emailjs_service_id,
                 'template_id': emailjs_template_id,
@@ -824,45 +825,145 @@ def send_email(to_email, subject, html_content, email_type="customer_quote", dir
                 'template_params': template_params
             }
             
-# Make the API request to EmailJS
-headers = {
-    'Content-Type': 'application/json',
-    'Origin': 'https://kmiservices.co.uk'  # Add origin header to bypass browser check
-}
-
-# Simple approach without complex error handling
-try:
-    # Convert any complex types in template_params to strings
-    safe_template_params = {}
-    for key, value in template_params.items():
-        if isinstance(value, (dict, list)):
-            safe_template_params[key] = str(value)
-        else:
-            safe_template_params[key] = value
-    
-    # Replace original params with safe ones
-    payload['template_params'] = safe_template_params
-    
-    # Make the request
-    response = requests.post(
-        'https://api.emailjs.com/api/v1.0/email/send',
-        data=json.dumps(payload),
-        headers=headers
-    )
-    
-    print(f"EmailJS response: {response.text}")  # Debug response
-    
-    # Check if the email was sent successfully
-    if response.status_code == 200:
-        print(f"Email sent to {recipient_email} successfully via EmailJS!")
-        return True
-    else:
-        print(f"Failed to send email via EmailJS to {recipient_email}: {response.text}")
-        return False
-except Exception as e:
-    print(f"Error sending email via EmailJS: {str(e)}")
+            # Make the API request to EmailJS
+            headers = {
+                'Content-Type': 'application/json',
+                'Origin': 'https://kmiservices.co.uk'  # Add origin header to bypass browser check
+            }
+            
+            # A simplified approach to handle complex data types
+            # First convert any complex types to strings
+            safe_template_params = {}
+            for key, value in template_params.items():
+                if isinstance(value, (dict, list)):
+                    safe_template_params[key] = str(value)
+                else:
+                    safe_template_params[key] = value
+            
+            # Replace original params with safe ones
+            payload['template_params'] = safe_template_params
+            
+            # Convert payload to JSON with safer error handling
+            try:
+                payload_json = json.dumps(payload)
+            except Exception as e:
+                print(f"JSON encoding error: {str(e)}")
+                return False
+                
+            # Make the API request
+            response = requests.post(
+                'https://api.emailjs.com/api/v1.0/email/send',
+                data=payload_json,
+                headers=headers
+            )
+            
+            print(f"EmailJS response: {response.text}")  # Debug response
+            
+            # Check if the email was sent successfully
+            if response.status_code == 200:
+                print(f"Email sent to {recipient_email} successfully via EmailJS!")
+                return True
+            else:
+                print(f"Failed to send email via EmailJS to {recipient_email}: {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"Error sending email via EmailJS: {str(e)}")
+            return False
+            
+    print("ERROR: No email sending method is properly configured.")
     return False
+
+def send_customer_email(quote_data, is_scheduled=False, is_admin_sending=False):
+    """Send quote email to customer"""
+    from utils.database import update_sent_to_customer
     
+    customer_email = quote_data["customer_info"]["email"]
+    customer_name = quote_data["customer_info"]["name"]
+    subject, html_content = create_customer_email_content(quote_data, is_scheduled)
+    
+    # Determine the email type based on context:
+    # - customer_schedule: When it's a scheduling confirmation
+    # - customer_quote: Initial quote request (no pricing)
+    # - customer_full_quote: When admin sends the full quote with pricing
+    if is_scheduled:
+        email_type = "customer_schedule"
+    elif is_admin_sending:
+        email_type = "customer_full_quote"  # New email type for the full quote with pricing
+    else:
+        email_type = "customer_quote"
+    
+    # If this is the full quote being sent from admin, add T&C link
+    if is_admin_sending:
+        # Add terms and conditions section before closing tags
+        tc_section = """
+        <div style="margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 5px;">
+            <p><strong>Terms and Conditions</strong></p>
+            <p>By accepting this quote, you agree to our <a href="https://kmiservices.co.uk/terms">Terms and Conditions</a>.</p>
+            <p>Please review them before requesting a cleaning date.</p>
+        </div>
+        """
+        
+        # Insert the T&C section before the closing container div
+        html_content = html_content.replace('</div>\n    </body>', f'{tc_section}\n        </div>\n    </body>')
+    
+    # Try to use SMTP directly first if available (more reliable for controlling recipient)
+    import os
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+    
+    if os.environ.get('EMAIL_USER') and os.environ.get('EMAIL_PASSWORD'):
+        try:
+            print(f"Trying to send direct customer email via SMTP to {customer_email}...")
+            # Get SMTP configuration from environment variables
+            smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+            smtp_port = int(os.environ.get('SMTP_PORT', 587))
+            email_user = os.environ.get('EMAIL_USER')
+            email_password = os.environ.get('EMAIL_PASSWORD')
+            
+            # Create message
+            message = MIMEMultipart('alternative')
+            message['Subject'] = subject
+            message['From'] = email_user
+            message['To'] = customer_email
+            
+            # Attach HTML content
+            html_part = MIMEText(html_content, 'html')
+            message.attach(html_part)
+            
+            # Connect to server and send
+            server = smtplib.SMTP(smtp_server, smtp_port)
+            server.starttls()
+            # Make sure we have string values for login
+            if email_user and email_password:
+                server.login(str(email_user), str(email_password))
+                server.sendmail(str(email_user), customer_email, message.as_string())
+            server.quit()
+            
+            print(f"Customer email sent directly to {customer_email} via SMTP successfully!")
+            
+            # Mark as sent to customer in the database
+            if "quote_id" in quote_data:
+                update_sent_to_customer(quote_data["quote_id"], True)
+                
+            return True
+        except Exception as e:
+            print(f"Error sending direct customer email via SMTP: {str(e)}")
+            # Fall back to regular send_email
+    
+    # Get the customer phone if available
+    customer_phone = quote_data["customer_info"].get("phone", "Not provided")
+    
+    # Fall back to regular EmailJS method
+    success = send_email(customer_email, subject, html_content, email_type=email_type, direct_phone=customer_phone)
+    
+    # Mark as sent to customer in the database
+    if success and "quote_id" in quote_data:
+        update_sent_to_customer(quote_data["quote_id"], True)
+        
+    return success
+
 def send_business_email(quote_data, is_scheduled=False, is_admin_sending=False):
     """Send detailed quote email to business"""
     config = load_config()
