@@ -1,0 +1,1 @@
+<the entire user-provided script>
