@@ -11,15 +11,20 @@ Base = declarative_base()
 
 # Database connection
 def get_db_connection():
-    """Create and return a database connection"""
-    db_url = os.environ.get('DATABASE_URL')
-    
-    if not db_url:
+    env = os.getenv("ENV", "development")
+
+    if env == "production":
+        url = os.getenv("DATABASE_URL_PROD")
+    else:
+        url = os.getenv("DATABASE_URL")
+
+    if not url:
         raise ValueError("DATABASE_URL environment variable not set")
-    
-    # Create engine
-    engine = create_engine(db_url)
+
+    # Create and return the SQLAlchemy engine
+    engine = create_engine(url)
     return engine
+
 
 # Define database models
 class Quote(Base):

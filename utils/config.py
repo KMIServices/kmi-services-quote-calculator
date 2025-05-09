@@ -1,5 +1,10 @@
 import os
 import json
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 
 def load_config():
     """Load application configuration"""

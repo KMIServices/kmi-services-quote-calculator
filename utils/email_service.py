@@ -817,12 +817,13 @@ def send_email(to_email, subject, html_content, email_type="customer_quote", dir
                 'template_params': template_params
             }
             
-            # Make the API request to EmailJS headers = {
+            # Make the API request to EmailJS 
+            headers = {
                 'Content-Type': 'application/json',
                 'Origin': 'https://kmiservices.co.uk'  # Add origin header to bypass browser check
             }
 
-            # A simplified approach to handle complex data types
+            # A simplified approach to handle complex data type
             # First convert any complex types to strings
             safe_template_params = {}
             for key, value in template_params.items():
